@@ -1,0 +1,102 @@
+---
+title: "DataAnalysis"
+author: "Meghan Hamp"
+date: "28/01/2020"
+output: html_document
+---
+
+
+Uploading my data and loading the packages I need.
+
+```{r}
+MData<-read.csv("Data/measurements.csv")
+#Reads my measurements data into an object called MData
+
+library(dplyr)
+library(ggplot2)
+library(knitr)
+#These are the packages I'll need to perform my analysis
+```
+Renaming my data
+
+```{r}
+names(MData) #Shows me what the names are currently
+
+MData<-rename(MData, SPP = Species, LIW = Limb.Width, UIW = unitsW, LIL = Limb.Length, UIL = unitsL)
+#Renames all my collum names to 3-digit names
+
+names(MData) #checks names to make sure they are what I want them to be
+```
+Calculating Volume of Limbs
+
+```{r}
+
+MData$LIW <- ifelse(MData$UIW == "cm", 1, 0.1)*MData$LIW 
+#multiplies the Limb.Width values by 0.1 to convert to cm IF the units are not alread cm
+#Now all my Limb.Width measurements are in cm. If yes, multiplies*MData$LIW by 1. If no, multiplies *MData$LIW by 0.1
+
+MData$LIL <- ifelse(MData$UIL == "cm", 1, 0.1)*MData$LIL;MData$LIL
+#If yes, multiplies*MData$LIL by 1. If no, multiplies *MData$LIL by 0.1
+
+MData$UIW <- "cm" #Chaning units to all be cm
+
+MData$UIL <- "cm"#Changing units to all be cm
+
+#Treated the limbs as a cylinder and used the equation to find the volume for cyclinder as the way to calculate volume of the limbs using my LIW and LIL values
+# Volume of a cylinder = pi*r^2*height
+# Radius (r) is half the width of the circle, therefore r = LIW/2
+MData <- mutate(MData, Volume = pi*((LIW/2)^2)*LIL);MData
+#Calculates volume of the limbs and adds Volume as a column to the end of my dataframe
+```
+Splitting my data into two groups.
+
+```{r}
+#I have decided to group my species into "quadrupedal" and "other"
+remindnames<-select(MData, SPP) 
+#Allows me to look at my species names again so I can associated them with the correct category in my "Categories" vector
+
+Categories<-c("Quadrupedal", "Other", "Other", "Quadrupedal", "Quadrupedal", "Quadrupedal", "Quadrupedal", "Other", "Other", "Other")
+#Creates a vector with the two categories I will add to my data
+
+MData<-mutate(MData, Locomotion = Categories);MData
+#Adding a colum that distinguishes the categories of locomotion
+
+Groups<-MData%>%group_by(Locomotion)%>%summarize(meanLength = mean(LIL), meanWidth = mean(LIW), meanVolume = mean(Volume), sdLength = sd(LIL), sdWidth = sd(LIW), sdVolume = sd(Volume) )
+#Creates a table of mean and sd for length, width, and volume in the two categories (grouped by locomotion)
+
+kable(Groups, caption = "Table 1: Mean and standard deiation of limb width, limb length, and volume for species grouped by locomotion")
+#created a table using the kable function found in the knitr package
+```
+Creating Graphs with GGplot
+
+```{r}
+#Plot limb width and length
+LIWvsLIL<-ggplot(MData,aes(x = LIW, y = LIL)) + geom_point(size = 3, colour = "turquoise") + xlab("Limb Width (cm)") + ylab("Limb Length (cm)") + theme_classic(base_size = 12)
+
+print(LIWvsLIL)
+#Creates a scatterplot that compares the relationship between limb width and limb length
+#Since I want to embed my graph in the code instead of saving it to a pdf, I simple don't use the pdf() and dev.off() functions. The graph will show up in my Rmd file when it is knitted together.
+
+
+#Plot limb width and length with species that have above average limb volume
+Vmean <- mean(MData$Volume)
+#creates an object that contains the means of volume
+
+AboveVmean <- filter(MData, Volume>Vmean);AboveVmean
+# creates an object that filters for all the values of volume that are above the mean
+
+AboveVmeanGraph <- ggplot(AboveVmean, aes(x = LIW, y = LIL)) + geom_point(size = 3, colour = "blue") + xlab("Limb Width (cm)") + ylab("Limb Length (cm)") + theme_classic(base_size = 12)
+#Graph comparing limb width and lenght for the animals that had a limb volume higher than the mean
+print(AboveVmeanGraph)
+```
+Creating a Table
+
+```{r}
+#Create table of species and volume with species that have below average limb volume
+BelowVmean <- filter(MData, Volume<Vmean)%>%select(SPP,Volume);BelowVmean
+#Creates an object that filters for all the values of volume that are below the mean and then selects for only the SPP and volume colums
+
+kable(BelowVmean, caption = "Table 2: Species and limb volume for species whose limb volumes were below the mean volume")
+#Creates a table with species and volume for the species whose limb volume are below the mean
+```
+
