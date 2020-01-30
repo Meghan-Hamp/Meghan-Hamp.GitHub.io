@@ -1,0 +1,32 @@
+---
+title: "Regex"
+author: "Meghan Hamp"
+date: "30/01/2020"
+output: html_document
+---
+
+Week 4 Assignment
+
+Loading the packages I will need
+
+```{r}
+library(dplyr)
+library(stringr)
+```
+Reading my data into r
+
+```{r}
+MData<-read.csv("Data/measurements.csv")
+```
+Creating a new column that changes the species names from the full name to the abbreviated version (e.g. Canis familiaris to C. familiaris)
+
+```{r}
+MData<-MData%>% mutate(Sp = gsub("(\\w)(\\w+)(\\W)","\\1\\. ", Species))
+print(MData)
+```
+Creating a new dataset with Sp at the front and Species column removed
+
+```{r}
+NewData<-select(MData, Sp,Limb.Width:unitsL)
+print(NewData)
+```
